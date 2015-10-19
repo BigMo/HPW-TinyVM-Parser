@@ -26,7 +26,6 @@ namespace HWP_VirtualMachineNET.Internals
             RTS,
             DMP,
             /* Parser-exclusive */
-            JTS, //JTS <label> ;jump to label
             INC, //INC <reg> ;increase register by one
             DEC //DEC <reg> ;decrease register by one
         }
@@ -95,7 +94,15 @@ namespace HWP_VirtualMachineNET.Internals
         public Instruction() : this(eOpCode.NOP)
         { }
 
+        public static Instruction Build(eOpCode opCode, ushort value = 0)
+        {
+            return new Instruction(opCode, new ValueParameter(value));
+        }
 
+        public static Instruction Build(eOpCode opCode, byte rx, byte ry, bool fromMem = false, bool toMem = false)
+        {
+            return new Instruction(opCode, new RegisterParameter(rx, ry, fromMem, toMem));
+        }
         #endregion
 
         #region METHODS

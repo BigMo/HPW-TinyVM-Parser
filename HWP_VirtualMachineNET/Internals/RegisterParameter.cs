@@ -32,7 +32,7 @@ namespace HWP_VirtualMachineNET.Internals
             if (FromMem)
                 data |= (ushort)(1 << 8);
             if (ToMem)
-                data |= (ushort)(1 << 8);
+                data |= (ushort)(1 << 9);
 
             data <<= 4;
             return data;

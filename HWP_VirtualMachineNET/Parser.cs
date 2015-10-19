@@ -14,29 +14,31 @@ namespace HWP_VirtualMachineNET
 
             using (System.IO.StreamReader reader = new System.IO.StreamReader(file))
             {
-                Console.WriteLine("> Parsing file \"{0}\"...", file);
+                Program.PrintInfo("> Parsing file \"{0}\"...", file);
                 string line = null;
                 int lineNum = 0;
 
                 while ((line = reader.ReadLine()) != null)
                 {
                     lineNum++;
+                    #region Basic checks
                     line = line.Trim();
                     if (line.Length == 0) //Ignore empty lines
                         continue;
-                    if (line.StartsWith(";")) //comment
+                    if (line.StartsWith(";")) //Comment
                         continue;
                     if (line.Contains(";")) //Cut off comment
                         line = line.Split(';')[0];
-                    if (line.Contains(",")) //trim spaces before/after comma
+                    if (line.Contains(",")) //Trim spaces before/after comma
                         line = line.Replace(", ", ",").Replace(" ,", ",");
-                    if (line.EndsWith(":")) //label
+                    if (line.EndsWith(":")) //Label
                     {
                         labelAddresses.Add(line.Substring(0, line.Length - 1), (ushort)(instructions.Count * 2));
                         continue;
                     }
                     line = line.Trim();
-
+                    #endregion
+                    #region Extract opcode
                     string[] parts = line.Split(' '); //Split by space: Seperate opcode from parameters
                     parts[0] = parts[0].ToUpper();
                     Instruction.eOpCode opCode = Instruction.eOpCode.NOP;
@@ -49,56 +51,73 @@ namespace HWP_VirtualMachineNET
                     {
                         ThrowAsmException(lineNum, "Unknown opcode \"{0}\"", parts[0]);
                     }
-
+                    #endregion
+                    #region Check arguments
+                    bool tooFewArgs = false;
                     switch (opCode)
                     {
                         // Those instructions don't require any arguments
                         case Instruction.eOpCode.NOP:
                         case Instruction.eOpCode.RTS:
                         case Instruction.eOpCode.DMP:
-                            instructions.Add(new Instruction(opCode));
                             break;
                         //Those ones require one argument
                         case Instruction.eOpCode.LOAD:
-                        case Instruction.eOpCode.JSR:
                         case Instruction.eOpCode.PUSH:
                         case Instruction.eOpCode.POP:
+                        case Instruction.eOpCode.JIH:
+                        case Instruction.eOpCode.JIZ:
+                        case Instruction.eOpCode.JMP:
+                        case Instruction.eOpCode.JSR:
+                        case Instruction.eOpCode.DEC:
+                        case Instruction.eOpCode.INC:
+                        case Instruction.eOpCode.ADD:
+                        case Instruction.eOpCode.SUB:
+                        case Instruction.eOpCode.DIV:
+                        case Instruction.eOpCode.MUL:
+                        case Instruction.eOpCode.MOV:
                             if (parts.Length != 2)
-                                ThrowAsmException(lineNum, "Too few words for \"{0}\"", opCode.ToString());
+                                tooFewArgs = true;
+                            break;
+                    }
+                    if (tooFewArgs)
+                        ThrowAsmException(lineNum, "Too few arguments for OpCode \"{0}\"", opCode.ToString());
+                    #endregion
+                    #region Process parameters
+                    switch (opCode)
+                    {
+                        // Those instructions don't require any arguments
+                        case Instruction.eOpCode.NOP:
+                        case Instruction.eOpCode.RTS:
+                        case Instruction.eOpCode.DMP:
+                            instructions.Add(Instruction.Build(opCode));
+                            break;
+                        //Those ones require one argument
+                        case Instruction.eOpCode.LOAD:
+                        case Instruction.eOpCode.PUSH:
+                        case Instruction.eOpCode.POP:
                             Instruction.Argument[] args0 = ExtractArgs(lineNum, parts[1], 1);
-                            instructions.Add(new Instruction(opCode, new ValueParameter(args0[0].Value)));
+                            instructions.Add(Instruction.Build(opCode, args0[0].Value));
                             break;
                         case Instruction.eOpCode.JIH:
                         case Instruction.eOpCode.JIZ:
                         case Instruction.eOpCode.JMP:
-                            if (parts.Length != 2)
-                                ThrowAsmException(lineNum, "Too few words for \"{0}\"", opCode.ToString());
+                        case Instruction.eOpCode.JSR:
                             instructions.Add(new LabelInstruction(opCode, parts[1]));
                             break;
-                        //case Instruction.eOpCode.JTS:
-                        //    if (parts.Length != 2)
-                        //        ThrowAsmException(lineNum, "Too few words for \"{0}\"", opCode.ToString());
-                        //    instructions.Add(new JMPInstruction(opCode, parts[1]));
-                        //    break;
                         case Instruction.eOpCode.INC:
-                            if (parts.Length != 2)
-                                ThrowAsmException(lineNum, "Too few words for \"{0}\"", opCode.ToString());
                             Instruction.Argument[] args2 = ExtractArgs(lineNum, parts[1], 1);
                             byte reg = (byte)args2[0].Value;
-                            instructions.Add(new Instruction(Instruction.eOpCode.PUSH, new ValueParameter(0))); //Push r0 to stack
-                            instructions.Add(new Instruction(Instruction.eOpCode.LOAD, new ValueParameter(1))); //Load 1 into r0
-                            instructions.Add(new Instruction(Instruction.eOpCode.ADD, new RegisterParameter(reg, 0, false, false))); //add r0 to reg
-                            instructions.Add(new Instruction(Instruction.eOpCode.POP, new ValueParameter(0))); //Pop r0 back from stack
+                            instructions.Add(Instruction.Build(Instruction.eOpCode.PUSH, 0)); //Push r0 to stack
+                            instructions.Add(Instruction.Build(Instruction.eOpCode.LOAD, 1)); //Load 1 into r0
+                            instructions.Add(Instruction.Build(Instruction.eOpCode.ADD, reg, 0)); //add r0 to reg
+                            instructions.Add(Instruction.Build(Instruction.eOpCode.POP, 0)); //Pop r0 back from stack
                             break;
                         case Instruction.eOpCode.DEC:
-                            if (parts.Length != 2)
-                                ThrowAsmException(lineNum, "Too few words for \"{0}\"", opCode.ToString());
                             Instruction.Argument[] args3 = ExtractArgs(lineNum, parts[1], 1);
                             byte reg1 = (byte)args3[0].Value;
-                            //instructions.Add(new Instruction(Instruction.eOpCode.PUSH, new ValueParameter(0))); //Push r0 to stack
-                            instructions.Add(new Instruction(Instruction.eOpCode.LOAD, new ValueParameter(1))); //Load 1 into r0
-                            instructions.Add(new Instruction(Instruction.eOpCode.SUB, new RegisterParameter(reg1, 0, false, false))); //subtract r0 from reg
-                            //instructions.Add(new Instruction(Instruction.eOpCode.POP, new ValueParameter(0))); //Pop r0 back from stack
+                            instructions.Add(Instruction.Build(Instruction.eOpCode.LOAD, 1)); //Load 1 into r0
+                            instructions.Add(Instruction.Build(Instruction.eOpCode.SUB, reg1, 0)); //subtract r0 from reg
                             break;
                         //Those ones require two arguments
                         case Instruction.eOpCode.ADD:
@@ -106,27 +125,25 @@ namespace HWP_VirtualMachineNET
                         case Instruction.eOpCode.DIV:
                         case Instruction.eOpCode.MUL:
                         case Instruction.eOpCode.MOV:
-                            if (parts.Length != 2)
-                                ThrowAsmException(lineNum, "Too few words for \"{0}\"", opCode.ToString());
                             Instruction.Argument[] args1 = ExtractArgs(lineNum, parts[1], 2);
-                            instructions.Add(new Instruction(opCode,
-                                new RegisterParameter(
-                                    (byte)args1[0].Value, (byte)args1[1].Value, args1[1].MemoryAddress, args1[0].MemoryAddress
-                                    )));
+                            instructions.Add(Instruction.Build(opCode,(byte)args1[0].Value, (byte)args1[1].Value, args1[1].MemoryAddress, args1[0].MemoryAddress));
                             break;
                         default:
                             ThrowAsmException(lineNum, "Couldn't process OpCode \"{0}\"!", opCode.ToString());
                             break;
                     }
+                    #endregion
                 }
+                #region Resolve labels
                 foreach (Instruction i in instructions)
                 {
                     if (i is LabelInstruction)
                         if (!((LabelInstruction)i).Resolve(labelAddresses))
                             ThrowAsmException(0, "Unable to resolve label \"{0}\"!", ((LabelInstruction)i).LabelName);
                 }
+                #endregion
             }
-            Console.WriteLine("> Parsing finished: {0} instructions parsed!", instructions.Count);
+            Program.PrintSuccess("> Parsing finished: {0} instructions parsed!", instructions.Count);
             return instructions.ToArray();
         }
 

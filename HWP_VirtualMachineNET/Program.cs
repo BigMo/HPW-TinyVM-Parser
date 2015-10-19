@@ -8,35 +8,45 @@ namespace HWP_VirtualMachineNET
 {
     class Program
     {
+        #region PROPERTIES
+        public static bool SaveBinary { get; set; }
+        public static bool SaveBinaryText { get; set; }
+        public static bool SaveASM { get; set; }
+        public static bool Print { get; set; }
+        public static string FileName { get; set; }
+        #endregion
+
         static void Main(string[] args)
         {
-            bool print = true;
-            bool save = true;
-            bool saveBinary = true;
-            bool saveASM = true;
-            string fileName = "testprog2.asm";
-            try
-            {
-                Instruction[] instructions = Parser.Parse(fileName);
-                if (print)
-                    PrintInstructions(instructions);
-                if (save)
-                    SaveInstructions(instructions, fileName);
-                if (saveBinary)
-                    SaveInstructionsBinary(instructions, fileName);
-                if (saveASM)
-                    SaveASM(instructions, fileName);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Failed to parse text:\n{0}", ex.Message);
-            }
+            Console.Title = "HWP - VirtualMachineNET Parser";
+            ProcessArgs(args);
+            do {
+                Console.Clear();
+                try
+                {
+                    Instruction[] instructions = Parser.Parse(FileName);
+                    if (Print)
+                        PrintInstructions(instructions);
+                    if (SaveBinary)
+                        OutputInstructions(instructions, FileName);
+                    if (SaveBinaryText)
+                        OutputInstructionsBinary(instructions, FileName);
+                    if (SaveASM)
+                        OutputASM(instructions, FileName);
+                }
+                catch (Exception ex)
+                {
+                    PrintException(ex);
+                }
+            } while (GetString("Would you like to repeat parsing?", "y", "n").Equals("y"));
+            PrintInfo("Done.");
             Console.ReadKey();
         }
 
-        private static void SaveInstructions(Instruction[] instructions, string fileName)
+        #region File-Methods
+        private static void OutputInstructions(Instruction[] instructions, string fileName)
         {
-            Console.WriteLine("> Saving parsed instructions...");
+            PrintInfo("> Saving parsed instructions...");
             try
             {
                 using (MemoryStream stream = new MemoryStream())
@@ -48,17 +58,16 @@ namespace HWP_VirtualMachineNET
                     }
                     File.WriteAllBytes(fileName.Replace(".asm", ".bin"), stream.ToArray());
                 }
-                Console.WriteLine("> Succesfully saved!");
+                PrintSuccess("> Succesfully saved!");
             }
             catch (Exception ex)
             {
-                Console.WriteLine("> Couldn't save: {0}\n{1}", ex.GetType().Name, ex.Message);
+                PrintException(ex);
             }
         }
-
-        private static void SaveInstructionsBinary(Instruction[] instructions, string fileName)
+        private static void OutputInstructionsBinary(Instruction[] instructions, string fileName)
         {
-            Console.WriteLine("> Saving parsed instructions (binary)...");
+            PrintInfo("> Saving parsed instructions (binary)...");
             try
             {
                 using (StreamWriter writer = new StreamWriter(fileName.Replace(".asm", ".bin2")))
@@ -67,37 +76,35 @@ namespace HWP_VirtualMachineNET
                         writer.WriteLine(Convert.ToString(i.ToWord(), 2).PadLeft(16, '0'));
                 }
 
-                Console.WriteLine("> Succesfully saved!");
+                PrintSuccess("> Succesfully saved!");
             }
             catch (Exception ex)
             {
-                Console.WriteLine("> Couldn't save: {0}\n{1}", ex.GetType().Name, ex.Message);
+                PrintException(ex);
             }
         }
-
         private static void PrintInstructions(Instruction[] instructions)
         {
             for (int i = 0; i < instructions.Length; i++)
             {
-                Console.WriteLine("Instruction #{0} [@0x{1}]:", (i + 1), (i * sizeof(ushort)).ToString("X").PadLeft(8, '0'));
-                Console.WriteLine("\tOpCode: {0} ({1})", instructions[i].OpCode.ToString(), ((int)instructions[i].OpCode).ToString());
+                PrintInfo("Instruction #{0} [@0x{1}]:", (i + 1), (i * sizeof(ushort)).ToString("X").PadLeft(8, '0'));
+                PrintInfo("\tOpCode: {0} ({1})", instructions[i].OpCode.ToString(), ((int)instructions[i].OpCode).ToString());
                 if (instructions[i].Parameter is ValueParameter)
                 {
-                    Console.WriteLine("\tValue: {0}", ((ValueParameter)instructions[i].Parameter).Value.ToString());
+                    PrintInfo("\tValue: {0}", ((ValueParameter)instructions[i].Parameter).Value.ToString());
                 }
                 else
                 {
-                    Console.WriteLine("\tRX: {0}", ((RegisterParameter)instructions[i].Parameter).DestinationRegister.ToString());
-                    Console.WriteLine("\tRY: {0}", ((RegisterParameter)instructions[i].Parameter).SourceRegister.ToString());
-                    Console.WriteLine("\tToMem: {0}", ((RegisterParameter)instructions[i].Parameter).ToMem.ToString());
-                    Console.WriteLine("\tFromMem: {0}", ((RegisterParameter)instructions[i].Parameter).FromMem.ToString());
+                    PrintInfo("\tRX: {0}", ((RegisterParameter)instructions[i].Parameter).DestinationRegister.ToString());
+                    PrintInfo("\tRY: {0}", ((RegisterParameter)instructions[i].Parameter).SourceRegister.ToString());
+                    PrintInfo("\tToMem: {0}", ((RegisterParameter)instructions[i].Parameter).ToMem.ToString());
+                    PrintInfo("\tFromMem: {0}", ((RegisterParameter)instructions[i].Parameter).FromMem.ToString());
                 }
             }
         }
-
-        private static void SaveASM(Instruction[] instructions, string fileName)
+        private static void OutputASM(Instruction[] instructions, string fileName)
         {
-            Console.WriteLine("> Saving parsed instructions (binary)...");
+            PrintInfo("> Saving parsed instructions (binary)...");
             try
             {
                 using (StreamWriter writer = new StreamWriter(fileName.Replace(".asm", ".processed.asm")))
@@ -125,11 +132,105 @@ namespace HWP_VirtualMachineNET
                         idx++;
                     }
                 }
+                PrintSuccess("> Succesfully saved!");
             }
             catch (Exception ex)
             {
-                Console.WriteLine("> Couldn't save: {0}\n{1}", ex.GetType().Name, ex.Message);
+                PrintException(ex);
             }
         }
+        #endregion
+        #region CL Methods
+        private static void ProcessArgs(string[] args)
+        {
+            if (args.Length == 0)
+            {
+                PrintInfo("* Usage:");
+                PrintInfo("* parser.exe <asm-source> [-noBinary] [-saveASM] [-saveBinaryText] [-print]");
+                PrintInfo("* \tasm-source: The source-file you'd like to parse and compile to binary");
+                PrintInfo("* \t-noBinary: Don't generate binary output");
+                PrintInfo("* \t-saveASM: Save the preprocessed ASM to file");
+                PrintInfo("* \t-saveBinaryText: Save bit-representation of the compiled instructions to text-file");
+                PrintInfo("* \t-print: Prints the compiled instructions");
+
+                FileName = GetFile("Please specify which file you'd like to parse:");
+                SaveBinary = !GetString("Do you want to skip compiling to binary?", "y", "n").Equals("y");
+                SaveBinaryText = GetString("Do you want to generate bit-representing text-output?", "y", "n").Equals("y");
+                SaveASM = GetString("Do you want to save the resulting ASM-instructions?", "y", "n").Equals("y");
+                Print = GetString("Do you want to print the resulting ASM-instructions?", "y", "n").Equals("y");
+            }
+            else
+            {
+                FileName = args[0];
+                SaveASM = FindString(args, "-saveASM");
+                SaveBinary = !FindString(args, "-noBinary");
+                SaveBinaryText = FindString(args, "-saveBinaryText");
+                Print = FindString(args, "-print");
+            }
+        }
+        private static bool FindString(string[] haystack, string needle)
+        {
+            foreach (string arg in haystack)
+                if (arg.Equals(needle))
+                    return true;
+            return false;
+        }
+        #endregion
+        #region Utilities
+        public static void PrintInfo(string text, params object[] arguments)
+        {
+            PrintEncolored(text, ConsoleColor.White, arguments);
+        }
+        public static void PrintSuccess(string text, params object[] arguments)
+        {
+            PrintEncolored(text, ConsoleColor.Green, arguments);
+        }
+        public static void PrintError(string text, params object[] arguments)
+        {
+            PrintEncolored(text, ConsoleColor.Red, arguments);
+        }
+        public static void PrintException(Exception ex)
+        {
+            PrintError("An Exception occured: {0}\n\"{1}\"\n{2}", ex.GetType().Name, ex.Message, ex.StackTrace);
+#if DEBUG
+            PrintError("StackTrace:\n{0}", ex.StackTrace);
+#endif
+        }
+        public static void PrintEncolored(string text, ConsoleColor color, params object[] arguments)
+        {
+            ConsoleColor clr = Console.ForegroundColor;
+            Console.ForegroundColor = color;
+            Console.WriteLine(text, arguments);
+            Console.ForegroundColor = clr;
+        }
+
+        private static string GetString(string message, params string[] arrOptions)
+        {
+            PrintInfo(message);
+            if (arrOptions.Length > 0)
+            {
+                string options = "";
+                for (int i = 0; i < arrOptions.Length; i++)
+                    options = string.Format("{0}{1}{2}", options, arrOptions[i], i == arrOptions.Length - 1 ? "" : ", ");
+                PrintInfo("[Options: {0}]", options);
+            }
+            string answer = "";
+            do {
+                Console.Write("> ");
+                answer = Console.ReadLine();
+            } while (string.IsNullOrEmpty(answer) || (arrOptions.Length > 0 && !FindString(arrOptions, answer)));
+            return answer;
+        }
+
+        private static string GetFile(string message)
+        {
+            string file = "";
+            do
+            {
+                file = GetString(message);
+            } while (string.IsNullOrEmpty(file) || !File.Exists(file));
+            return file;
+        }
+        #endregion
     }
 }
