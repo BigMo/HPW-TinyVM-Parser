@@ -38,7 +38,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Internals\Instruction.cs" />
-    <Compile Include="Internals\JMPInstruction.cs" />
+    <Compile Include="Internals\LabelInstruction.cs" />
     <Compile Include="Internals\Parameter.cs" />
     <Compile Include="Internals\RegisterParameter.cs" />
     <Compile Include="Internals\ValueParameter.cs" />

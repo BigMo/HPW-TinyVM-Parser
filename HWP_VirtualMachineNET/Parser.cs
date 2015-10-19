@@ -73,13 +73,13 @@ namespace HWP_VirtualMachineNET
                         case Instruction.eOpCode.JMP:
                             if (parts.Length != 2)
                                 ThrowAsmException(lineNum, "Too few words for \"{0}\"", opCode.ToString());
-                            instructions.Add(new JMPInstruction(opCode, parts[1]));
+                            instructions.Add(new LabelInstruction(opCode, parts[1]));
                             break;
-                        case Instruction.eOpCode.JTS:
-                            if (parts.Length != 2)
-                                ThrowAsmException(lineNum, "Too few words for \"{0}\"", opCode.ToString());
-                            instructions.Add(new JMPInstruction(opCode, parts[1]));
-                            break;
+                        //case Instruction.eOpCode.JTS:
+                        //    if (parts.Length != 2)
+                        //        ThrowAsmException(lineNum, "Too few words for \"{0}\"", opCode.ToString());
+                        //    instructions.Add(new JMPInstruction(opCode, parts[1]));
+                        //    break;
                         case Instruction.eOpCode.INC:
                             if (parts.Length != 2)
                                 ThrowAsmException(lineNum, "Too few words for \"{0}\"", opCode.ToString());
@@ -121,9 +121,9 @@ namespace HWP_VirtualMachineNET
                 }
                 foreach (Instruction i in instructions)
                 {
-                    if (i is JMPInstruction)
-                        if (!((JMPInstruction)i).Resolve(labelAddresses))
-                            ThrowAsmException(0, "Unable to resolve label \"{0}\"!", ((JMPInstruction)i).LabelName);
+                    if (i is LabelInstruction)
+                        if (!((LabelInstruction)i).Resolve(labelAddresses))
+                            ThrowAsmException(0, "Unable to resolve label \"{0}\"!", ((LabelInstruction)i).LabelName);
                 }
             }
             Console.WriteLine("> Parsing finished: {0} instructions parsed!", instructions.Count);
