@@ -13,153 +13,96 @@ namespace HWP_VirtualMachineNET
         private static Dictionary<string, string> variableNames = new Dictionary<string, string>();
         #endregion
 
-        //public static Instruction[] Parse(string file)
-        //{
-        //    List<Instruction> instructions = new List<Instruction>();
-        //    Dictionary<string, ushort> labelAddresses = new Dictionary<string, ushort>();
-        //    Dictionary<string, string> variableNames = new Dictionary<string, string>();
+        public static void Disassemble(string file)
+        {
+            Program.PrintInfo("> Disassembling file...");
+            List<Instruction> instructions = new List<Instruction>();
+            int idx = 0;
+            using (FileStream stream = new FileStream(file, FileMode.Open))
+            {
+                using (BinaryReader reader = new BinaryReader(stream))
+                {
+                    while (reader.BaseStream.Position <= reader.BaseStream.Length - 2)
+                    {
+                        try
+                        {
+                            instructions.Add(new Instruction(reader.ReadUInt16()));
+                            idx++;
+                        }
+                        catch { Program.PrintError("Failed to disassemble instruction at 0x{0}", idx.ToString("X").PadLeft(4, '0')); }
+                    }
+                }
+            }
 
-        //    using (System.IO.StreamReader reader = new System.IO.StreamReader(file))
-        //    {
-        //        Program.PrintInfo("> Parsing file \"{0}\"...", file);
-        //        string line = null;
-        //        int lineNum = 0;
-        //        while ((line = reader.ReadLine()) != null)
-        //        {
-        //            lineNum++;
-        //            #region Basic checks
-        //            line = line.Trim();
-        //            if (line.Length == 0) //Ignore empty lines
-        //                continue;
-        //            if (line.StartsWith(";")) //Comment
-        //                continue;
-        //            if (line.Contains(";")) //Cut off comment
-        //                line = line.Split(';')[0];
-        //            if (line.Contains(",")) //Trim spaces before/after comma
-        //                line = line.Replace(", ", ",").Replace(" ,", ",");
-        //            if (line.EndsWith(":")) //Label
-        //            {
-        //                labelAddresses.Add(line.Substring(0, line.Length - 1), (ushort)(instructions.Count * 2));
-        //                continue;
-        //            }
-        //            line = line.Trim();
-        //            #endregion
-        //            #region Extract opcode
-        //            string[] parts = line.Split(' '); //Split by space: Seperate opcode from parameters
-        //            parts[0] = parts[0].ToUpper();
-        //            Instruction.eOpCode opCode = Instruction.eOpCode.NOP;
+            if (Program.SmartDisassembly)
+            {
+                ReplaceDec(instructions);
+                ReplaceInc(instructions);
+            }
 
-        //            try
-        //            {
-        //                opCode = (Instruction.eOpCode)Enum.Parse(typeof(Instruction.eOpCode), parts[0]);
-        //            }
-        //            catch
-        //            {
-        //                ThrowAsmException(lineNum, "Unknown opcode \"{0}\"", parts[0]);
-        //            }
-        //            #endregion
-        //            #region Check arguments
-        //            bool tooFewArgs = false;
-        //            switch (opCode)
-        //            {
-        //                // Those instructions don't require any arguments
-        //                case Instruction.eOpCode.NOP:
-        //                case Instruction.eOpCode.RTS:
-        //                case Instruction.eOpCode.DMP:
-        //                    break;
-        //                //Those ones require one argument
-        //                case Instruction.eOpCode.LOAD:
-        //                case Instruction.eOpCode.PUSH:
-        //                case Instruction.eOpCode.POP:
-        //                case Instruction.eOpCode.JIH:
-        //                case Instruction.eOpCode.JIZ:
-        //                case Instruction.eOpCode.JMP:
-        //                case Instruction.eOpCode.JSR:
-        //                case Instruction.eOpCode.DEC:
-        //                case Instruction.eOpCode.INC:
-        //                case Instruction.eOpCode.ADD:
-        //                case Instruction.eOpCode.SUB:
-        //                case Instruction.eOpCode.DIV:
-        //                case Instruction.eOpCode.MUL:
-        //                case Instruction.eOpCode.MOV:
-        //                case Instruction.eOpCode.VAR:
-        //                    if (parts.Length != 2)
-        //                        tooFewArgs = true;
-        //                    break;
-        //            }
-        //            if (tooFewArgs)
-        //                ThrowAsmException(lineNum, "Too few arguments for OpCode \"{0}\"", opCode.ToString());
-        //            #endregion
-        //            #region Process parameters
-        //            switch (opCode)
-        //            {
-        //                // Those instructions don't require any arguments
-        //                case Instruction.eOpCode.NOP:
-        //                case Instruction.eOpCode.RTS:
-        //                case Instruction.eOpCode.DMP:
-        //                case Instruction.eOpCode.BREAK:
-        //                    instructions.Add(Instruction.Build(opCode));
-        //                    break;
-        //                //Those ones require one argument
-        //                case Instruction.eOpCode.LOAD:
-        //                case Instruction.eOpCode.PUSH:
-        //                case Instruction.eOpCode.POP:
-        //                    Instruction.Argument[] args0 = ExtractArgs(lineNum, parts[1], 1);
-        //                    instructions.Add(Instruction.Build(opCode, args0[0].Value));
-        //                    break;
-        //                case Instruction.eOpCode.VAR:
-        //                    string[] vr = parts[1].Split('=');
-        //                    if (vr.Length != 2)
-        //                        ThrowAsmException(lineNum, "Invalid VAR-instruction \"{0}\"", parts[1]);
-        //                    variableNames.Add(vr[0], vr[1]);
-        //                    break;
-        //                case Instruction.eOpCode.JIH:
-        //                case Instruction.eOpCode.JIZ:
-        //                case Instruction.eOpCode.JMP:
-        //                case Instruction.eOpCode.JSR:
-        //                    instructions.Add(new LabelInstruction(opCode, parts[1]));
-        //                    break;
-        //                case Instruction.eOpCode.INC:
-        //                    Instruction.Argument[] args2 = ExtractArgs(lineNum, parts[1], 1);
-        //                    byte reg = (byte)args2[0].Value;
-        //                    instructions.Add(Instruction.Build(Instruction.eOpCode.PUSH, 0)); //Push r0 to stack
-        //                    instructions.Add(Instruction.Build(Instruction.eOpCode.LOAD, 1)); //Load 1 into r0
-        //                    instructions.Add(Instruction.Build(Instruction.eOpCode.ADD, reg, 0)); //add r0 to reg
-        //                    instructions.Add(Instruction.Build(Instruction.eOpCode.POP, 0)); //Pop r0 back from stack
-        //                    break;
-        //                case Instruction.eOpCode.DEC:
-        //                    Instruction.Argument[] args3 = ExtractArgs(lineNum, parts[1], 1);
-        //                    byte reg1 = (byte)args3[0].Value;
-        //                    instructions.Add(Instruction.Build(Instruction.eOpCode.LOAD, 1)); //Load 1 into r0
-        //                    instructions.Add(Instruction.Build(Instruction.eOpCode.SUB, reg1, 0)); //subtract r0 from reg
-        //                    break;
-        //                //Those ones require two arguments
-        //                case Instruction.eOpCode.ADD:
-        //                case Instruction.eOpCode.SUB:
-        //                case Instruction.eOpCode.DIV:
-        //                case Instruction.eOpCode.MUL:
-        //                case Instruction.eOpCode.MOV:
-        //                    Instruction.Argument[] args1 = ExtractArgs(lineNum, parts[1], 2);
-        //                    instructions.Add(Instruction.Build(opCode, (byte)args1[0].Value, (byte)args1[1].Value, args1[1].MemoryAddress, args1[0].MemoryAddress));
-        //                    break;
-        //                default:
-        //                    ThrowAsmException(lineNum, "Couldn't process OpCode \"{0}\"!", opCode.ToString());
-        //                    break;
-        //            }
-        //            #endregion
-        //        }
-        //        #region Resolve labels
-        //        foreach (Instruction i in instructions)
-        //        {
-        //            if (i is LabelInstruction)
-        //                if (!((LabelInstruction)i).Resolve(labelAddresses))
-        //                    ThrowAsmException(0, "Unable to resolve label \"{0}\"!", ((LabelInstruction)i).LabelName);
-        //        }
-        //        #endregion
-        //    }
-        //    Program.PrintSuccess("> Parsing finished: {0} instructions parsed!", instructions.Count);
-        //    return instructions.ToArray();
-        //}
+            using (StreamWriter writer = new StreamWriter(file + ".asm"))
+                            foreach (Instruction i in instructions)
+                                writer.WriteLine(i.ToString());
+
+            Program.PrintSuccess("> Successfully disassembled file!");
+        }
+
+        private static void ReplaceDec(List<Instruction> instructions)
+        {
+            int idx = -1;
+            while ((idx = FindPattern(instructions, idx+1, Instruction.eOpCode.LOAD, Instruction.eOpCode.SUB)) != -1)
+            {
+                Instruction[] ins = ExtractInstructions(instructions, idx, 2);
+                if (((RegisterParameter)ins[1].Parameter).SourceRegister == 0)
+                {
+                    instructions.RemoveRange(idx, 2);
+                    instructions.Insert(idx, Instruction.Build(Instruction.eOpCode.DEC, ((RegisterParameter)ins[1].Parameter).DestinationRegister));
+                }
+            }
+        }
+        private static void ReplaceInc(List<Instruction> instructions)
+        {
+            int idx = -1;
+            while ((idx = FindPattern(instructions, idx+1, Instruction.eOpCode.PUSH, Instruction.eOpCode.LOAD, Instruction.eOpCode.ADD, Instruction.eOpCode.POP)) != -1)
+            {
+                Instruction[] ins = ExtractInstructions(instructions, idx, 4);
+                if (
+                    ((ValueParameter)ins[0].Parameter).Value == 0 &&
+                    ((ValueParameter)ins[1].Parameter).Value == 1 &&
+                    ((RegisterParameter)ins[2].Parameter).SourceRegister == 0 &&
+                    ((ValueParameter)ins[3].Parameter).Value == 0
+                )
+                {
+                    instructions.RemoveRange(idx, 4);
+                    instructions.Insert(idx, Instruction.Build(Instruction.eOpCode.INC, ((RegisterParameter)ins[2].Parameter).DestinationRegister));
+                }
+            }
+        }
+        private static int FindPattern(List<Instruction> instructions, int start, params Instruction.eOpCode[] opCodes)
+        {
+            for (int i = start; i < instructions.Count - opCodes.Length; i++)
+            {
+                bool found = true;
+                for (int x = 0; x < opCodes.Length; x++)
+                {
+                    if (instructions[i + x].OpCode != opCodes[x])
+                    {
+                        found = false;
+                        break;
+                    }
+                }
+                if (found)
+                    return i;
+            }
+            return -1;
+        }
+        private static Instruction[] ExtractInstructions(List<Instruction> instructions, int offset, int length)
+        {
+            Instruction[] ins = new Instruction[length];
+            for (int i = 0; i < length; i++)
+                ins[i] = instructions[offset + i];
+            return ins;
+        }
 
         /// <summary>
         /// Parses the given file, processes and compiles it

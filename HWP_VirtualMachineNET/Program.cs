@@ -10,6 +10,8 @@ namespace HWP_VirtualMachineNET
     {
         #region PROPERTIES
         public static string FileName { get; set; }
+        public static bool Disassemble { get; set; }
+        public static bool SmartDisassembly { get; set; }
         #endregion
 
         static void Main(string[] args)
@@ -20,7 +22,10 @@ namespace HWP_VirtualMachineNET
                 Console.Clear();
                 try
                 {
-                    Parser.Parse(FileName);
+                    if (!Disassemble)
+                        Parser.Parse(FileName);
+                    else
+                        Parser.Disassemble(FileName);
                 }
                 catch (Exception ex)
                 {
@@ -34,17 +39,20 @@ namespace HWP_VirtualMachineNET
         #region CL Methods
         private static void ProcessArgs(string[] args)
         {
+            FileName = "";
+            Disassemble = false;
+            SmartDisassembly = false;
             if (args.Length == 0)
             {
                 PrintInfo("* Usage:");
-                PrintInfo("* parser.exe <asm-source>");// [-noBinary] [-saveASM] [-saveBinaryText] [-print]");
-                //PrintInfo("* \tasm-source: The source-file you'd like to parse and compile to binary");
-                //PrintInfo("* \t-noBinary: Don't generate binary output");
-                //PrintInfo("* \t-saveASM: Save the preprocessed ASM to file");
-                //PrintInfo("* \t-saveBinaryText: Save bit-representation of the compiled instructions to text-file");
-                //PrintInfo("* \t-print: Prints the compiled instructions");
+                PrintInfo("* parser.exe <asm-source> [-disassemble] [-smartDisassembly]");
+                PrintInfo("* \tdisassemble: Try to disassemble the file");
+                PrintInfo("* \tsmartDisassembly: Try to replace instructions with more compact ones");
 
                 FileName = GetFile("Please specify which file you'd like to parse:");
+                Disassemble = GetString("Would you like to disassemble this file?", "y", "n").Equals("y");
+                if (Disassemble)
+                    SmartDisassembly = GetString("Would you like to enable smart-disassembly?", "y", "n").Equals("y");
             }
             else
             {
