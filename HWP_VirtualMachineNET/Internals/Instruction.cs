@@ -25,9 +25,13 @@ namespace HWP_VirtualMachineNET.Internals
             JSR,
             RTS,
             DMP,
+            BREAK,
             /* Parser-exclusive */
             INC, //INC <reg> ;increase register by one
-            DEC //DEC <reg> ;decrease register by one
+            DEC, //DEC <reg> ;decrease register by one
+            SET, //SET <reg>,<value> ;sets the value of register
+            QSET, //QSET <reg>,<value> ;same as SET, doesn't push/pop r0 though ("quick" set)
+            VAR //VAR <name>,<reg>; Renames register to name
         }
         public struct Argument
         {
@@ -49,15 +53,16 @@ namespace HWP_VirtualMachineNET.Internals
                 {
                     MemoryAddress = false;
                 }
+
                 if (Representation.StartsWith("R"))
                     Representation = Representation.Substring(1, Representation.Length - 1);
                 bool isHex = false;
-                if (Representation.StartsWith("0x"))
+                if (Representation.StartsWith("0X"))
                 {
                     Representation = Representation.Substring(2, Representation.Length - 2);
                     isHex = true;
                 }
-                else if (Representation.EndsWith("h"))
+                else if (Representation.EndsWith("H"))
                 {
                     Representation = Representation.Substring(0, Representation.Length - 1);
                     isHex = true;
