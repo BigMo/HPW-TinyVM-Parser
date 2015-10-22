@@ -4,8 +4,12 @@ using System.Text;
 
 namespace HWP_VirtualMachineNET.Internals
 {
-    public abstract class Parameter
+    /// <summary>
+    /// A basic ASM-parameter
+    /// - has to offer a method to convert its content to a 2-byte value only
+    /// </summary>
+    public interface IParameter
     {
-        public abstract ushort ToWord();
+        ushort ToWord();
     }
 }

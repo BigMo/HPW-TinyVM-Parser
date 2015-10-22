@@ -4,7 +4,10 @@ using System.Text;
 
 namespace HWP_VirtualMachineNET.Internals
 {
-    public class RegisterParameter : Parameter
+    /// <summary>
+    /// A parameter-implementation that holds data about register- and memory-access
+    /// </summary>
+    public class RegisterParameter : IParameter
     {
         #region PROPERTIES
         public byte DestinationRegister { get; set; }
@@ -24,7 +27,7 @@ namespace HWP_VirtualMachineNET.Internals
         #endregion
 
         #region METHODS
-        public override ushort ToWord()
+        public ushort ToWord()
         {
             ushort data = 0;
             data |= DestinationRegister;

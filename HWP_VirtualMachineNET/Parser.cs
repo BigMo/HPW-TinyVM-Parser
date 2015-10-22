@@ -6,6 +6,9 @@ using System.Text;
 
 namespace HWP_VirtualMachineNET
 {
+    /// <summary>
+    /// Allows parsing of asm source-files and disassembling of compiled binary-files
+    /// </summary>
     public class Parser
     {
         #region PROPERTIES
@@ -13,6 +16,10 @@ namespace HWP_VirtualMachineNET
         private static Dictionary<string, string> variableNames = new Dictionary<string, string>();
         #endregion
 
+        /// <summary>
+        /// Attempts to disassemble the given file
+        /// </summary>
+        /// <param name="file"></param>
         public static void Disassemble(string file)
         {
             Program.PrintInfo("> Disassembling file...");
@@ -47,6 +54,7 @@ namespace HWP_VirtualMachineNET
             Program.PrintSuccess("> Successfully disassembled file!");
         }
 
+        #region Disassembler-Helpers
         private static void ReplaceDec(List<Instruction> instructions)
         {
             int idx = -1;
@@ -103,6 +111,7 @@ namespace HWP_VirtualMachineNET
                 ins[i] = instructions[offset + i];
             return ins;
         }
+        #endregion
 
         /// <summary>
         /// Parses the given file, processes and compiles it
@@ -376,6 +385,7 @@ namespace HWP_VirtualMachineNET
             return builder.ToString();
         }
 
+        #region Parse-Helpers
         private static int GetNumberOfArgs(string line)
         {
             string arg = ExtractArg(line);
@@ -431,9 +441,6 @@ namespace HWP_VirtualMachineNET
 
             return iArgs;
         }
-        private static void ThrowAsmException(int line, string message, params string[] args)
-        {
-            throw new Exception(string.Format("[{0}] {1}", line.ToString().PadLeft(4), string.Format(message, args)));
-        }
+        #endregion
     }
 }

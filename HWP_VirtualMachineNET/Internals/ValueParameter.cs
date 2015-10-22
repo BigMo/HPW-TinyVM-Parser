@@ -4,7 +4,10 @@ using System.Text;
 
 namespace HWP_VirtualMachineNET.Internals
 {
-    public class ValueParameter : Parameter
+    /// <summary>
+    /// A parameter-implementation that holds a 12-bit value
+    /// </summary>
+    public class ValueParameter : IParameter
     {
         #region PROPERTIES
         public ushort Value { get; set; }
@@ -20,7 +23,7 @@ namespace HWP_VirtualMachineNET.Internals
         #endregion
 
         #region METHODS
-        public override ushort ToWord()
+        public ushort ToWord()
         {
             return (ushort)(Value << 4);
         }

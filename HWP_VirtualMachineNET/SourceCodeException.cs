@@ -4,6 +4,9 @@ using System.Text;
 
 namespace HWP_VirtualMachineNET
 {
+    /// <summary>
+    /// An exception that is thrown while parsing source-code
+    /// </summary>
     class SourceCodeException : Exception
     {
         public int LineNumber { get; set; }

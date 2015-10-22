@@ -5,9 +5,15 @@ using System.Text;
 
 namespace HWP_VirtualMachineNET.Internals
 {
+    /// <summary>
+    /// Represents an "ASM"-instruction
+    /// </summary>
     public class Instruction
     {
         #region CLASSES/ENUMS/STRUCTS
+        /// <summary>
+        /// Enumeration of all opcodes, including parser-exclusive ones
+        /// </summary>
         public enum eOpCode
         {
             NOP = 0,
@@ -33,6 +39,9 @@ namespace HWP_VirtualMachineNET.Internals
             QSET, //QSET <reg>,<value> ;same as SET, doesn't push/pop r0 though ("quick" set)
             VAR //VAR <name>,<reg>; Renames register to name
         }
+        /// <summary>
+        /// Parses an argument from a string
+        /// </summary>
         public struct Argument
         {
             public string Representation;
@@ -86,11 +95,11 @@ namespace HWP_VirtualMachineNET.Internals
 
         #region PROPERTIES
         public eOpCode OpCode { get; set; }
-        public Parameter Parameter { get; set; }
+        public IParameter Parameter { get; set; }
         #endregion
 
         #region CONSTRUCTORS
-        public Instruction(eOpCode opCode, Parameter parameter)
+        public Instruction(eOpCode opCode, IParameter parameter)
         {
             OpCode = opCode;
             Parameter = parameter;

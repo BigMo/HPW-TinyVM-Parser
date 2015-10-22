@@ -14,6 +14,10 @@ namespace HWP_VirtualMachineNET
         public static bool SmartDisassembly { get; set; }
         #endregion
 
+        /// <summary>
+        /// Entrypoint of the application
+        /// </summary>
+        /// <param name="args"></param>
         static void Main(string[] args)
         {
             Console.Title = "HWP - VirtualMachineNET Parser";
@@ -31,7 +35,7 @@ namespace HWP_VirtualMachineNET
                 {
                     PrintException(ex);
                 }
-            } while (GetString("Would you like to repeat parsing?", "y", "n").Equals("y"));
+            } while (GetString("Would you like to repeat this process?", "y", "n").Equals("y"));
             PrintInfo("Done.");
             Console.ReadKey();
         }
